@@ -5,7 +5,7 @@
             app:startDestination="@+id/fragment_splash">
     <fragment
             android:id="@+id/fragment_splash"
-            android:name="com.genesis.randomphoto.SplashFragment"
+            android:name="com.genesis.randomphoto.ui.SplashFragment"
             android:label="Splash"
             tools:layout="@layout/fragment_splash">
 
@@ -16,7 +16,7 @@
     </fragment>
     <fragment
             android:id="@+id/nav_home"
-            android:name="com.genesis.randomphoto.HomeFragment"
+            android:name="com.genesis.randomphoto.ui.HomeFragment"
             android:label="Favorite"
             tools:layout="@layout/fragment_home" />
 </navigation>

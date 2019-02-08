@@ -1,4 +1,4 @@
-package com.genesis.randomphoto
+package com.genesis.randomphoto.ui
 
 import android.os.Bundle
 import android.os.CountDownTimer
@@ -7,6 +7,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.navigation.Navigation
+import com.genesis.randomphoto.R
 import com.genesis.randomphoto.framework.BaseFragment
 import kotlinx.android.synthetic.main.activity_main.*
 

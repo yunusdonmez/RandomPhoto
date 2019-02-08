@@ -1,11 +1,11 @@
-package com.genesis.randomphoto
+package com.genesis.randomphoto.ui
 
 
 import android.os.Bundle
-import android.support.v4.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import com.genesis.randomphoto.R
 import com.genesis.randomphoto.framework.BaseFragment
 import kotlinx.android.synthetic.main.activity_main.*
 
