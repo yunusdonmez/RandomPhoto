@@ -26,7 +26,7 @@ class SplashFragment : BaseFragment() {
         object : CountDownTimer(2000,1000){
             override fun onFinish() {
                 Log.e("Timer","Süre Bitti")
-                view?.let { Navigation.findNavController(it).navigate(R.id.action_splash_to_home) }
+                view?.let { Navigation.findNavController(it).navigate(R.id.action_splash_to_slider) }
             }
 
             override fun onTick(millisUntilFinished: Long) {
