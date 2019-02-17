@@ -10,14 +10,22 @@ class ItemTouchHelperCallback<T> : ItemTouchHelper.Callback {
 
     val adapter: RecyclerView.Adapter<*>
     val dataList: MutableList<T>?
-    var mListener: OnSlideListener<T>
+    private lateinit var mListener: OnSlideListener<T>
 
-    constructor(adapter: RecyclerView.Adapter<*>, dataList: MutableList<T>, listener: OnSlideListener<T>) {
+    constructor(
+        adapter: RecyclerView.Adapter<RecyclerView.ViewHolder>,
+        dataList: MutableList<T>,
+        listener: OnSlideListener<T>
+    ) {
         this.adapter = adapter
         this.dataList = dataList
         this.mListener = listener
     }
 
+    constructor(adapter: RecyclerView.Adapter<RecyclerView.ViewHolder>, dataList: MutableList<T>) {
+        this.adapter = adapter
+        this.dataList = dataList
+    }
     private fun <T> checkIsNull(t: T?): T {
         if (t == null) {
             Log.e("ItemTouchHelperCallback", "checkisNull")
