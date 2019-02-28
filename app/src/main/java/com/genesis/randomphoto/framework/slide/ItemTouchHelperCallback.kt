@@ -4,15 +4,16 @@ import android.graphics.Canvas
 import android.support.v7.widget.RecyclerView
 import android.support.v7.widget.helper.ItemTouchHelper
 import android.util.Log
+import com.genesis.randomphoto.dto.PhotoDTO
 
 
 class ItemTouchHelperCallback<T> : ItemTouchHelper.Callback {
 
-    val adapter: RecyclerView.Adapter<*>
-    val dataList: MutableList<T>?
-    private lateinit var mListener: OnSlideListener<T>
+    private val adapter: RecyclerView.Adapter<*>
+    private val dataList: MutableList<PhotoDTO>?
+    private lateinit var mListener: OnSlideListener<PhotoDTO>
 
-    constructor(
+    /*constructor(
         adapter: RecyclerView.Adapter<RecyclerView.ViewHolder>,
         dataList: MutableList<T>,
         listener: OnSlideListener<T>
@@ -20,9 +21,9 @@ class ItemTouchHelperCallback<T> : ItemTouchHelper.Callback {
         this.adapter = adapter
         this.dataList = dataList
         this.mListener = listener
-    }
+    }*/
 
-    constructor(adapter: RecyclerView.Adapter<RecyclerView.ViewHolder>, dataList: MutableList<T>) {
+    constructor(adapter: RecyclerView.Adapter<RecyclerView.ViewHolder>, dataList: MutableList<PhotoDTO>) {
         this.adapter = adapter
         this.dataList = dataList
     }
@@ -35,7 +36,7 @@ class ItemTouchHelperCallback<T> : ItemTouchHelper.Callback {
     }
 
 
-    fun setOnSlideListener(mListener: OnSlideListener<T>) {
+    fun setOnSlideListener(mListener: OnSlideListener<PhotoDTO>) {
         this.mListener = mListener
     }
 
