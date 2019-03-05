@@ -1,8 +1,14 @@
 package com.genesis.randomphoto.ui
 
 
+import android.arch.lifecycle.Observer
+import android.arch.lifecycle.ViewModelProviders
 import android.content.Context
+import android.content.Intent
+import android.graphics.Bitmap
+import android.net.Uri
 import android.os.Bundle
+import android.os.Environment
 import android.support.design.widget.CoordinatorLayout
 import android.support.design.widget.FloatingActionButton
 import android.support.v4.app.Fragment
@@ -18,42 +24,28 @@ import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.Toast
 import com.bumptech.glide.Glide
+import com.bumptech.glide.request.target.SimpleTarget
+import com.bumptech.glide.request.transition.Transition
 import com.genesis.randomphoto.R
+import com.genesis.randomphoto.dto.FabSingletonItem
 import com.genesis.randomphoto.dto.PhotoDTO
 import com.genesis.randomphoto.framework.slide.ItemConfig
 import com.genesis.randomphoto.framework.slide.ItemTouchHelperCallback
 import com.genesis.randomphoto.framework.slide.OnSlideListener
 import com.genesis.randomphoto.framework.slide.SlideLayoutManager
-import com.genesis.randomphoto.network.SendRequest
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
+import com.genesis.randomphoto.viewmodel.SliderFragmentViewModel
+import java.io.File
+import java.io.FileOutputStream
 
 
-class SliderFragment : Fragment(), Callback<ArrayList<PhotoDTO>> {
-    override fun onFailure(call: Call<ArrayList<PhotoDTO>>, t: Throwable) {
-        Toast.makeText(context, "Resimleri Görebilmek İçin İnternet Bağlantısı Gerekir.", Toast.LENGTH_LONG).show()
-        mPhotoList.add(PhotoDTO(9999))
-        initView()
-        initListener()
-    }
-
-    override fun onResponse(call: Call<ArrayList<PhotoDTO>>, response: Response<ArrayList<PhotoDTO>>) {
-        mPhotoList = response.body()!!
-        mPhotoList.shuffle()
-        initView()
-        initListener()
-    }
-
-
+class SliderFragment : Fragment() {
     private lateinit var mRecyclerView: RecyclerView
     private lateinit var mSlideLayoutManager: SlideLayoutManager
     private lateinit var mItemTouchHelper: ItemTouchHelper
     private lateinit var mItemTouchHelperCallback: ItemTouchHelperCallback<Int>
-    //private lateinit var mViewModel: SliderFragmentViewModel
+    private lateinit var sliderFragmentViewModel: SliderFragmentViewModel
     private lateinit var rootView: View
     private var mAdapter: MyAdapter? = null
-    private var mPhotoList: ArrayList<PhotoDTO> = ArrayList()
 
     private var FAB_Status = false
     private lateinit var show_fab_1: Animation
@@ -93,12 +85,6 @@ class SliderFragment : Fragment(), Callback<ArrayList<PhotoDTO>> {
         hide_fab_3 = AnimationUtils.loadAnimation(context, R.anim.fab3_hide)
         rotate_main = AnimationUtils.loadAnimation(context, R.anim.fab_main_rotate)
         revert_main = AnimationUtils.loadAnimation(context, R.anim.fab_main_revert)
-
-        /* rotate_main  = RotateAnimation(0.0f,45.0f,10.0f,10.0f)
-         rotate_main.duration=800
-         rotate_main.repeatCount=0
-         rotate_main.repeatMode=Animation.REVERSE*/
-        //  rotate_main.setInterpolator(context,android.R.interpolator.accelerate_decelerate)
         rotate_main.fillAfter = true
 
         fabMain.setOnClickListener {
@@ -115,15 +101,59 @@ class SliderFragment : Fragment(), Callback<ArrayList<PhotoDTO>> {
             Toast.makeText(context, "Share!!!", Toast.LENGTH_SHORT).show()
         }
         fabEdit.setOnClickListener {
-            Toast.makeText(context, "Edit!!!", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "Edit!!! ${FabSingletonItem.selected}", Toast.LENGTH_SHORT).show()
+
         }
         fabSave.setOnClickListener {
             Toast.makeText(context, "Save!!!", Toast.LENGTH_SHORT).show()
+            val URL = "https://picsum.photos/400/600?image=${FabSingletonItem.selected}"
+            Glide.with(this)
+                .asBitmap()
+                .load(URL)
+                .into(object : SimpleTarget<Bitmap>() {
+                    override fun onResourceReady(resource: Bitmap, transition: Transition<in Bitmap>?) {
+                        saveImage(resource)
+                    }
+
+                })
         }
         //initView(rootView)
         //initListener()
         addData()
         return rootView
+    }
+
+    private fun saveImage(image: Bitmap): String {
+        var saveImagePath = ""
+        val imageFileName = "JPEG_" + "${FabSingletonItem.selected}" + ".jpg"
+        val storageDir: File =
+            File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).toString())
+        var success = true
+        if (!storageDir.exists())
+            success = storageDir.mkdirs()
+        if (success) {
+            val imageFile = File(storageDir, imageFileName)
+            saveImagePath = imageFile.absolutePath
+            try {
+                val fOut = FileOutputStream(imageFile)
+                image.compress(Bitmap.CompressFormat.JPEG, 100, fOut)
+                fOut.close()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+            // Add the image to the system gallery
+            galleryAddPic(saveImagePath)
+            Toast.makeText(context, "IMAGE SAVED", Toast.LENGTH_LONG).show()
+        }
+        return saveImagePath
+    }
+
+    private fun galleryAddPic(imagePath: String) {
+        val mediaScanIntent: Intent = Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE)
+        val f = File(imagePath)
+        val contentUri = Uri.fromFile(f)
+        mediaScanIntent.data = contentUri
+        context?.sendBroadcast(mediaScanIntent)
     }
 
     private fun expandFAB() {
@@ -155,7 +185,6 @@ class SliderFragment : Fragment(), Callback<ArrayList<PhotoDTO>> {
     }
 
     private fun hideFAB() {
-
         fabMain.startAnimation(revert_main)
 
         //Floating Action Button 1
@@ -183,25 +212,21 @@ class SliderFragment : Fragment(), Callback<ArrayList<PhotoDTO>> {
         fabShare.isClickable = false
     }
 
-    private fun initView() {
-        Log.e("SliderFragment", "initView")
-        mRecyclerView = rootView.findViewById(R.id.recycler_view)
-        mAdapter = MyAdapter(rootView.context, mPhotoList)
-        mRecyclerView.adapter = mAdapter
-        //addData()
-        mItemTouchHelperCallback = ItemTouchHelperCallback<Int>(mRecyclerView.adapter!!, mPhotoList)
-        mItemTouchHelper = ItemTouchHelper(mItemTouchHelperCallback)
-        mSlideLayoutManager = SlideLayoutManager(mRecyclerView, mItemTouchHelper)
-        mItemTouchHelper.attachToRecyclerView(mRecyclerView)
-        mRecyclerView.layoutManager = mSlideLayoutManager
+    /* private fun initView() {
+         Log.e("SliderFragment", "initView")
+         mRecyclerView = rootView.findViewById(R.id.recycler_view)
+         mAdapter = MyAdapter(rootView.context, mPhotoList)
+         mRecyclerView.adapter = mAdapter
+         mItemTouchHelperCallback = ItemTouchHelperCallback<Int>(mRecyclerView.adapter!!, mPhotoList)
+         mItemTouchHelper = ItemTouchHelper(mItemTouchHelperCallback)
+         mSlideLayoutManager = SlideLayoutManager(mRecyclerView, mItemTouchHelper)
+         mItemTouchHelper.attachToRecyclerView(mRecyclerView)
+         mRecyclerView.layoutManager = mSlideLayoutManager
 
-    }
+     }*/
 
     private fun initListener() {
         mItemTouchHelperCallback.setOnSlideListener(object : OnSlideListener<PhotoDTO> {
-            /* override fun onSlided(viewHolder: RecyclerView.ViewHolder, t: Int, direction: Int) {
-                 Log.e("SliderFragment", "onSlided")
-             }*/
 
             override fun onSlided(viewHolder: RecyclerView.ViewHolder, t: PhotoDTO, direction: Int) {
                 //val position = viewHolder.adapterPosition
@@ -226,18 +251,20 @@ class SliderFragment : Fragment(), Callback<ArrayList<PhotoDTO>> {
     }
 
     fun addData() {
-        SendRequest.getPhotos().enqueue(this@SliderFragment)
-        /*   val bgs = intArrayOf(
-               R.drawable.img_slide_1,
-               R.drawable.img_slide_2,
-               R.drawable.img_slide_3,
-               R.drawable.img_slide_4,
-               R.drawable.img_slide_5,
-               R.drawable.img_slide_6
-           )
-           for (i in 0..5) {
-               mList.add(bgs[i])
-           }*/
+        sliderFragmentViewModel = ViewModelProviders.of(this@SliderFragment).get(SliderFragmentViewModel::class.java)
+        sliderFragmentViewModel.photoList.observe(this, Observer {
+            Log.e("SliderFragment", "initView")
+            it?.shuffle()
+            mRecyclerView = rootView.findViewById(R.id.recycler_view)
+            mAdapter = MyAdapter(rootView.context, it!!)
+            mRecyclerView.adapter = mAdapter
+            mItemTouchHelperCallback = ItemTouchHelperCallback<Int>(mRecyclerView.adapter!!, it)
+            mItemTouchHelper = ItemTouchHelper(mItemTouchHelperCallback)
+            mSlideLayoutManager = SlideLayoutManager(mRecyclerView, mItemTouchHelper)
+            mItemTouchHelper.attachToRecyclerView(mRecyclerView)
+            mRecyclerView.layoutManager = mSlideLayoutManager
+            initListener()
+        })
     }
 
     class MyAdapter(private var context: Context, private var mList: List<PhotoDTO>/*private var mList: List<Int>*/) :
@@ -256,16 +283,10 @@ class SliderFragment : Fragment(), Callback<ArrayList<PhotoDTO>> {
                 // val options=RequestOptions.placeholderOf(R.drawable.background).error(R.drawable.background)
                 //Glide.with(holder.itemView).load(URL).apply(options).into(holder.imageBackground)
                 Glide.with(holder.itemView).load(URL).into(holder.imageBackground)
+                FabSingletonItem.selected = mList[position].id
             } else {
-                // Glide.with(holder.itemView).asGif().load("https://gifs.benlk.com/rubiks-loading.gif").into(holder.imageBackground)
                 Glide.with(holder.itemView).load(R.drawable.loading).into(holder.imageBackground)
             }
-
-            //    holder.imageBackground.setImageResource(mList[position])
-            /*val options=RequestOptions.placeholderOf(R.drawable.background).error(R.drawable.background)
-
-            Glide.with(holder.itemView).load(mList[position]).apply(options).into(holder.imageBackground)*/
-
         }
 
         class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
