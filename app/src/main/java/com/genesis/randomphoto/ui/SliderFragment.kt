@@ -20,6 +20,8 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.animation.Animation
 import android.view.animation.AnimationUtils
+import android.view.animation.BounceInterpolator
+import android.view.animation.ScaleAnimation
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.Toast
@@ -29,11 +31,13 @@ import com.bumptech.glide.request.transition.Transition
 import com.genesis.randomphoto.R
 import com.genesis.randomphoto.dto.FabSingletonItem
 import com.genesis.randomphoto.dto.PhotoDTO
+import com.genesis.randomphoto.framework.AppConfig
 import com.genesis.randomphoto.framework.slide.ItemConfig
 import com.genesis.randomphoto.framework.slide.ItemTouchHelperCallback
 import com.genesis.randomphoto.framework.slide.OnSlideListener
 import com.genesis.randomphoto.framework.slide.SlideLayoutManager
 import com.genesis.randomphoto.viewmodel.SliderFragmentViewModel
+import kotlinx.android.synthetic.main.fragment_slider.*
 import java.io.File
 import java.io.FileOutputStream
 
@@ -66,7 +70,6 @@ class SliderFragment : Fragment() {
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        // Inflate the layout for this fragment
         rootView = inflater.inflate(R.layout.fragment_slider, container, false)
 
         //Floating Action Buttons
@@ -106,10 +109,10 @@ class SliderFragment : Fragment() {
         }
         fabSave.setOnClickListener {
             Toast.makeText(context, "Save!!!", Toast.LENGTH_SHORT).show()
-            val URL = "https://picsum.photos/400/600?image=${FabSingletonItem.selected}"
+            // val URL = "https://picsum.photos/400/600?image=${FabSingletonItem.selected}"
             Glide.with(this)
                 .asBitmap()
-                .load(URL)
+                .load(AppConfig.URL + FabSingletonItem.selected.toString())
                 .into(object : SimpleTarget<Bitmap>() {
                     override fun onResourceReady(resource: Bitmap, transition: Transition<in Bitmap>?) {
                         saveImage(resource)
@@ -117,8 +120,6 @@ class SliderFragment : Fragment() {
 
                 })
         }
-        //initView(rootView)
-        //initListener()
         addData()
         return rootView
     }
@@ -182,6 +183,9 @@ class SliderFragment : Fragment() {
         fabShare.layoutParams = layoutParams3
         fabShare.startAnimation(show_fab_3)
         fabShare.isClickable = true
+        //heartGroup.visibility=View.INVISIBLE
+        heartGroup.startAnimation(AnimationUtils.loadAnimation(context, R.anim.heart_hide))
+
     }
 
     private fun hideFAB() {
@@ -210,20 +214,9 @@ class SliderFragment : Fragment() {
         fabShare.layoutParams = layoutParams3
         fabShare.startAnimation(hide_fab_3)
         fabShare.isClickable = false
+
+        heartGroup.startAnimation(AnimationUtils.loadAnimation(context, R.anim.heart_show))
     }
-
-    /* private fun initView() {
-         Log.e("SliderFragment", "initView")
-         mRecyclerView = rootView.findViewById(R.id.recycler_view)
-         mAdapter = MyAdapter(rootView.context, mPhotoList)
-         mRecyclerView.adapter = mAdapter
-         mItemTouchHelperCallback = ItemTouchHelperCallback<Int>(mRecyclerView.adapter!!, mPhotoList)
-         mItemTouchHelper = ItemTouchHelper(mItemTouchHelperCallback)
-         mSlideLayoutManager = SlideLayoutManager(mRecyclerView, mItemTouchHelper)
-         mItemTouchHelper.attachToRecyclerView(mRecyclerView)
-         mRecyclerView.layoutManager = mSlideLayoutManager
-
-     }*/
 
     private fun initListener() {
         mItemTouchHelperCallback.setOnSlideListener(object : OnSlideListener<PhotoDTO> {
@@ -234,13 +227,28 @@ class SliderFragment : Fragment() {
                     hideFAB()
                     FAB_Status = false
                 }
-                Log.e("SliderFragment", "onSlided")
+                val scaleAnimation = ScaleAnimation(
+                    1.0f,
+                    1.5f,
+                    1.0f,
+                    1.5f,
+                    Animation.RELATIVE_TO_SELF,
+                    0.7f,
+                    Animation.RELATIVE_TO_SELF,
+                    0.7f
+                )
+                scaleAnimation.duration = 500
+                val bounceInterpolator = BounceInterpolator()
+                scaleAnimation.interpolator = bounceInterpolator
+                if (direction == ItemConfig.SLIDED_LEFT) {
+                    imgHeart.startAnimation(scaleAnimation)
+                } else if (direction == ItemConfig.SLIDED_RIGHT) {
+                    imgBrokenHeart.startAnimation(scaleAnimation)
+                }
+                Log.e("SliderFragment", "onSlided:$direction")
             }
 
             override fun onSliding(viewHolder: RecyclerView.ViewHolder, ratio: Float, direction: Int) {
-                if (direction == ItemConfig.SLIDING_LEFT) {
-                } else if (direction == ItemConfig.SLIDING_RIGHT) {
-                }
 
             }
 
@@ -279,10 +287,8 @@ class SliderFragment : Fragment() {
 
         override fun onBindViewHolder(holder: ViewHolder, position: Int) {
             if (mList[position].id != 9999) {
-                val URL = "https://picsum.photos/400/600?image=${mList[position].id}"
-                // val options=RequestOptions.placeholderOf(R.drawable.background).error(R.drawable.background)
-                //Glide.with(holder.itemView).load(URL).apply(options).into(holder.imageBackground)
-                Glide.with(holder.itemView).load(URL).into(holder.imageBackground)
+                Glide.with(holder.itemView).load(AppConfig.URL + mList[position].id.toString())
+                    .into(holder.imageBackground)
                 FabSingletonItem.selected = mList[position].id
             } else {
                 Glide.with(holder.itemView).load(R.drawable.loading).into(holder.imageBackground)
